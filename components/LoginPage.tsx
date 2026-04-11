@@ -61,46 +61,39 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
         return
       }
 
-      // Create user - we'll send verification via Resend instead
-      const { data, error: signUpError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: fullName.trim(),
-            organization_name: organizationName.trim(),
-            email_verified: false,
-          },
-          emailRedirectTo: '',
-        },
+      // Create user via our API (auto-confirmed via Admin API)
+      const res = await fetch('/api/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          password,
+          fullName: fullName.trim(),
+          organizationName: organizationName.trim(),
+        }),
       })
 
-      if (signUpError) {
-        setError(signUpError.message)
+      const data = await res.json()
+
+      if (!res.ok) {
+        setError(data.error || 'Signup failed')
         setLoading(false)
         return
       }
 
-      // Send verification email via Resend
-      try {
-        const verificationToken = btoa(`${email}:${Date.now()}`)
-        const verificationUrl = `${window.location.origin}/verify?token=${verificationToken}`
-        
-        await fetch('/api/send-verification', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email,
-            name: fullName.trim(),
-            verificationUrl,
-          }),
-        })
-      } catch (e) {
-        console.error('Failed to send verification email:', e)
+      // Auto sign in after signup
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+
+      if (signInError) {
+        setMessage('Account created! Please sign in.')
+        setIsSignUp(false)
+      } else if (signInData.user) {
+        await onLogin(signInData.user)
       }
 
-      setMessage('Account created! Check your email to verify, then sign in.')
-      setIsSignUp(false)
       setLoading(false)
       return
     }

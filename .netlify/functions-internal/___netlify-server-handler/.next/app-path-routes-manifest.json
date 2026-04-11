@@ -1,0 +1,12 @@
+{
+  "/_global-error/page": "/_global-error",
+  "/_not-found/page": "/_not-found",
+  "/api/chatbot/ingest/route": "/api/chatbot/ingest",
+  "/api/retell/webhook/route": "/api/retell/webhook",
+  "/api/send-password-reset/route": "/api/send-password-reset",
+  "/api/send-verification/route": "/api/send-verification",
+  "/api/verify/route": "/api/verify",
+  "/favicon.ico/route": "/favicon.ico",
+  "/page": "/",
+  "/reset-password/page": "/reset-password"
+}

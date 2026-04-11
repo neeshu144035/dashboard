@@ -1,16 +1,6 @@
 [build]
-  command = "npm run build"
+  command = "echo skip"
   publish = ".next"
 
-[build.environment]
-  NEXT_TELEMETRY_DISABLED = "1"
-
-[[redirects]]
-  from = "/:path*"
-  to = "/:path*"
-  status = 200
-
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
+[plugins]
+  package = ""

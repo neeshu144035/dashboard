@@ -1,0 +1,1 @@
+Use the Supabase MCP for project uscotjkqicqxvddclglj. First verify access by listing or describing the public database tables, then stop and print only a short result summary.
