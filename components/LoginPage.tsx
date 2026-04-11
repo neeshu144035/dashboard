@@ -29,14 +29,26 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
     setLoading(true)
 
     if (isForgotPassword) {
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      })
-
-      if (resetError) {
-        setError(resetError.message)
-      } else {
+      // Send password reset via Resend
+      try {
+        const resetUrl = `${window.location.origin}/reset-password?email=${encodeURIComponent(email)}`
+        
+        const res = await fetch('/api/send-password-reset', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email,
+            resetUrl,
+          }),
+        })
+        
+        if (!res.ok) {
+          throw new Error('Failed to send reset email')
+        }
+        
         setMessage('Check your email for password reset link!')
+      } catch (e) {
+        setError('Failed to send reset email. Try again.')
       }
       setLoading(false)
       return
@@ -49,6 +61,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
         return
       }
 
+      // Create user with custom metadata via admin
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
@@ -56,19 +69,37 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
           data: {
             full_name: fullName.trim(),
             organization_name: organizationName.trim(),
+            email_verified: false,
           },
+          emailRedirectTo: `${window.location.origin}/api/auth/callback`,
         },
       })
 
       if (signUpError) {
         setError(signUpError.message)
-      } else if (data.session?.user) {
-        await onLogin(data.session.user)
-      } else {
-        setMessage('Account created. Check your email to confirm your account, then sign in.')
-        setIsSignUp(false)
+        setLoading(false)
+        return
       }
 
+      // Send verification email via Resend
+      try {
+        const verificationUrl = `${window.location.origin}/api/auth/verify?email=${encodeURIComponent(email)}&name=${encodeURIComponent(fullName)}`
+        
+        await fetch('/api/send-verification', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email,
+            name: fullName.trim(),
+            verificationUrl,
+          }),
+        })
+      } catch (e) {
+        console.error('Failed to send verification email:', e)
+      }
+
+      setMessage('Account created! Check your email to verify, then sign in.')
+      setIsSignUp(false)
       setLoading(false)
       return
     }
