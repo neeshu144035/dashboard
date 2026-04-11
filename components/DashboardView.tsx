@@ -1,71 +1,98 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { MessageCircle, Phone, TrendingUp } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { FileText, MessageCircle, Phone, UserRound } from 'lucide-react'
 import StatCard from './StatCard'
-import LineChartComponent from './LineChart'
-import DonutChart from './DonutChart'
-import BarChartComponent from './BarChart'
-import { getChatStats, getCallStats } from '@/lib/supabase-data'
+import { getDashboardSnapshot } from '@/lib/supabase-data'
+import { DashboardSnapshot } from '@/lib/types'
 
 interface DashboardViewProps {
-  userId: string
+  organizationId: string
 }
 
-export default function DashboardView({ userId }: DashboardViewProps) {
-  const [chatStats, setChatStats] = useState({ totalChats: 0, avgMessages: '0', csat: '0' })
-  const [callStats, setCallStats] = useState({ totalCalls: 0, avgDuration: '0m 0s', successRate: '0%' })
+export default function DashboardView({ organizationId }: DashboardViewProps) {
+  const [snapshot, setSnapshot] = useState<DashboardSnapshot | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    async function loadStats() {
-      const [chat, call] = await Promise.all([
-        getChatStats(userId),
-        getCallStats(userId)
-      ])
-      setChatStats(chat)
-      setCallStats(call)
+    async function loadSnapshot() {
+      setLoading(true)
+      const data = await getDashboardSnapshot(organizationId)
+      setSnapshot(data)
       setLoading(false)
     }
-    loadStats()
-  }, [userId])
 
-  const totalMessages = chatStats.totalChats * parseFloat(chatStats.avgMessages || '0')
-  const totalInteractions = chatStats.totalChats + callStats.totalCalls
-
-  const lineChartData = {
-    labels: ['Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr'],
-    messagesData: [2100, 2400, 2800, 3100, 3500, 4200, totalMessages || 4821],
-    callsData: [800, 850, 920, 980, 1050, 1180, callStats.totalCalls || 1293],
-  }
-
-  const donutChartData = {
-    labels: ['Chatbot', 'Voice', 'Email'],
-    values: [58, 31, 11],
-  }
-
-  const barChartData = {
-    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-    values: [92, 88, 95, 87, 91, 78, 65],
-  }
+    void loadSnapshot()
+  }, [organizationId])
 
   if (loading) {
     return <div className="p-6 text-oyik-muted">Loading...</div>
   }
 
+  const recentChats = snapshot?.recentChats ?? []
+  const recentCalls = snapshot?.recentCalls ?? []
+
   return (
     <div className="p-6 space-y-6">
-      <div className="grid grid-cols-3 gap-4">
-        <StatCard icon={MessageCircle} label="Messages" value={totalMessages || 4821} change="+12.4%" />
-        <StatCard icon={Phone} label="Calls" value={callStats.totalCalls || 1293} change="+8.1%" />
-        <StatCard icon={TrendingUp} label="Conversion" value="34.7%" change="+2.3%" />
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <StatCard icon={UserRound} label="Total Leads" value={snapshot?.totalLeads ?? 0} change="Captured from chatbot and Retell flows" />
+        <StatCard icon={MessageCircle} label="Chat Sessions" value={snapshot?.totalChats ?? 0} change="One row per website conversation" />
+        <StatCard icon={FileText} label="Messages Stored" value={snapshot?.totalMessages ?? 0} change="Inbound and outbound chat turns" />
+        <StatCard icon={Phone} label="Voice Calls" value={snapshot?.totalCalls ?? 0} change="Retell calls linked to this organization" />
       </div>
 
-      <LineChartComponent data={lineChartData} />
+      <div className="grid gap-4 xl:grid-cols-2">
+        <section className="bg-white rounded-2xl border border-oyik-border shadow-[0_2px_8px_rgba(124,58,237,0.05)] p-5">
+          <h2 className="text-sm font-semibold text-oyik-navy mb-4">Latest Chats</h2>
+          {recentChats.length === 0 ? (
+            <p className="text-sm text-oyik-muted">No chatbot sessions have been stored yet.</p>
+          ) : (
+            <div className="space-y-3">
+              {recentChats.map((chat) => (
+                <div key={chat.id} className="rounded-xl border border-oyik-border/70 p-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-semibold text-oyik-navy">{chat.lead.name}</p>
+                      <p className="text-xs text-oyik-muted">
+                        {chat.channel} | {chat.messages} messages | {chat.date}
+                      </p>
+                    </div>
+                    <span className="rounded-full bg-oyik-lavender px-2 py-1 text-[11px] font-semibold text-oyik-purple">
+                      {chat.status}
+                    </span>
+                  </div>
+                  <p className="mt-3 text-sm text-oyik-text">{chat.summary}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
 
-      <div className="grid grid-cols-2 gap-4">
-        <DonutChart data={donutChartData} />
-        <BarChartComponent data={barChartData} />
+        <section className="bg-white rounded-2xl border border-oyik-border shadow-[0_2px_8px_rgba(124,58,237,0.05)] p-5">
+          <h2 className="text-sm font-semibold text-oyik-navy mb-4">Latest Calls</h2>
+          {recentCalls.length === 0 ? (
+            <p className="text-sm text-oyik-muted">No voice calls have been stored yet.</p>
+          ) : (
+            <div className="space-y-3">
+              {recentCalls.map((call) => (
+                <div key={call.id} className="rounded-xl border border-oyik-border/70 p-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-semibold text-oyik-navy">{call.lead.name}</p>
+                      <p className="text-xs text-oyik-muted">
+                        {call.duration} | {call.number} | {call.date}
+                      </p>
+                    </div>
+                    <span className="rounded-full bg-oyik-lavender px-2 py-1 text-[11px] font-semibold text-oyik-purple">
+                      {call.status}
+                    </span>
+                  </div>
+                  <p className="mt-3 text-sm text-oyik-text">{call.summary}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
       </div>
     </div>
   )

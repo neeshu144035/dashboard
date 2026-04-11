@@ -1,0 +1,12 @@
+
+> oyik-dashboard@0.1.0 dev
+> next dev --hostname 127.0.0.1 --port 3000
+
+▲ Next.js 16.2.2 (Turbopack)
+- Local:         http://127.0.0.1:3000
+- Network:       http://127.0.0.1:3000
+✓ Ready in 373ms
+
+○ Compiling / ...
+ GET / 200 in 3.9s (next.js: 3.5s, application-code: 397ms)
+ GET / 200 in 689ms (next.js: 307ms, application-code: 382ms)

@@ -6,7 +6,7 @@ interface StatCardProps {
   icon: LucideIcon
   label: string
   value: string | number
-  change: string
+  change?: string
 }
 
 export default function StatCard({ icon: Icon, label, value, change }: StatCardProps) {
@@ -19,7 +19,7 @@ export default function StatCard({ icon: Icon, label, value, change }: StatCardP
       </div>
       <p className="text-xs uppercase tracking-wide text-oyik-muted mb-1">{label}</p>
       <p className="text-3xl font-bold text-oyik-navy">{value}</p>
-      <p className="text-sm text-oyik-purple font-medium mt-1">{change}</p>
+      {change ? <p className="text-sm text-oyik-purple font-medium mt-1">{change}</p> : null}
     </div>
   )
 }

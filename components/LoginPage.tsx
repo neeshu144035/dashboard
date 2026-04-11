@@ -2,16 +2,19 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
+import { User } from '@supabase/supabase-js'
 import { Eye, EyeOff, Loader2, ArrowLeft } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 
 interface LoginPageProps {
-  onLogin: (user: any) => void
+  onLogin: (user: User) => void | Promise<void>
 }
 
 export default function LoginPage({ onLogin }: LoginPageProps) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [fullName, setFullName] = useState('')
+  const [organizationName, setOrganizationName] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -24,12 +27,6 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
     setError('')
     setMessage('')
     setLoading(true)
-
-    if (!supabase) {
-      setError('Supabase not configured')
-      setLoading(false)
-      return
-    }
 
     if (isForgotPassword) {
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
@@ -46,29 +43,47 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
     }
 
     if (isSignUp) {
+      if (!fullName.trim() || !organizationName.trim()) {
+        setError('Full name and organization name are required')
+        setLoading(false)
+        return
+      }
+
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          data: {
+            full_name: fullName.trim(),
+            organization_name: organizationName.trim(),
+          },
+        },
       })
 
       if (signUpError) {
         setError(signUpError.message)
-      } else if (data.user) {
-        setMessage('Check your email to confirm your account!')
-        onLogin(data.user)
+      } else if (data.session?.user) {
+        await onLogin(data.session.user)
+      } else {
+        setMessage('Account created. Check your email to confirm your account, then sign in.')
+        setIsSignUp(false)
       }
-    } else {
-      const { data, error: authError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
 
-      if (authError) {
-        setError(authError.message)
-      } else if (data.user) {
-        onLogin(data.user)
-      }
+      setLoading(false)
+      return
     }
+
+    const { data, error: authError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
+
+    if (authError) {
+      setError(authError.message)
+    } else if (data.user) {
+      await onLogin(data.user)
+    }
+
     setLoading(false)
   }
 
@@ -91,15 +106,43 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
               {isForgotPassword ? 'Reset Password' : isSignUp ? 'Create Account' : 'Welcome Back'}
             </h1>
             <p className="text-sm text-oyik-muted mt-1">
-              {isForgotPassword 
-                ? 'Enter your email to reset password' 
-                : isSignUp 
-                  ? 'Sign up to get started' 
+              {isForgotPassword
+                ? 'Enter your email to reset password'
+                : isSignUp
+                  ? 'Create your organization dashboard account'
                   : 'Sign in to access your dashboard'}
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            {isSignUp && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-oyik-text mb-1">Full Name</label>
+                  <input
+                    type="text"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="Anirudh Chaudhari"
+                    className="w-full px-4 py-3 rounded-xl border border-oyik-border focus:border-oyik-purple focus:outline-none text-oyik-text"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-oyik-text mb-1">Organization Name</label>
+                  <input
+                    type="text"
+                    value={organizationName}
+                    onChange={(e) => setOrganizationName(e.target.value)}
+                    placeholder="Oyik Dashboard"
+                    className="w-full px-4 py-3 rounded-xl border border-oyik-border focus:border-oyik-purple focus:outline-none text-oyik-text"
+                    required
+                  />
+                </div>
+              </>
+            )}
+
             <div>
               <label className="block text-sm font-medium text-oyik-text mb-1">Email</label>
               <input
@@ -136,20 +179,23 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
               </div>
             )}
 
-            {error && (
-              <p className="text-sm text-red-600">{error}</p>
-            )}
-
-            {message && (
-              <p className="text-sm text-emerald-600">{message}</p>
-            )}
+            {error && <p className="text-sm text-red-600">{error}</p>}
+            {message && <p className="text-sm text-emerald-600">{message}</p>}
 
             <button
               type="submit"
               disabled={loading}
               className="w-full py-3 bg-oyik-purple text-white rounded-xl font-semibold hover:bg-oyik-purple2 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              {loading ? <Loader2 size={20} className="animate-spin" /> : isForgotPassword ? 'Send Reset Link' : isSignUp ? 'Sign Up' : 'Sign In'}
+              {loading ? (
+                <Loader2 size={20} className="animate-spin" />
+              ) : isForgotPassword ? (
+                'Send Reset Link'
+              ) : isSignUp ? (
+                'Sign Up'
+              ) : (
+                'Sign In'
+              )}
             </button>
           </form>
 

@@ -3,25 +3,11 @@
 import { Message } from '@/lib/types'
 
 interface ChatTranscriptPanelProps {
-  transcript: Message[] | any
+  transcript: Message[]
 }
 
 export default function ChatTranscriptPanel({ transcript }: ChatTranscriptPanelProps) {
-  const isStringTranscript = typeof transcript === 'string'
-  const safeTranscript = Array.isArray(transcript) ? transcript : []
-
-  if (isStringTranscript) {
-    return (
-      <div className="bg-white rounded-2xl border border-oyik-border shadow-[0_2px_8px_rgba(124,58,237,0.05)] p-5">
-        <h3 className="text-sm font-semibold text-oyik-navy mb-4">Transcript</h3>
-        <div className="bg-[#f5f3ff] border border-[#ddd6fe] rounded-2xl px-4 py-3 text-sm text-oyik-text whitespace-pre-wrap">
-          {transcript}
-        </div>
-      </div>
-    )
-  }
-
-  if (safeTranscript.length === 0) {
+  if (transcript.length === 0) {
     return (
       <div className="bg-white rounded-2xl border border-oyik-border shadow-[0_2px_8px_rgba(124,58,237,0.05)] p-5">
         <h3 className="text-sm font-semibold text-oyik-navy mb-4">Transcript</h3>
@@ -34,7 +20,7 @@ export default function ChatTranscriptPanel({ transcript }: ChatTranscriptPanelP
     <div className="bg-white rounded-2xl border border-oyik-border shadow-[0_2px_8px_rgba(124,58,237,0.05)] p-5">
       <h3 className="text-sm font-semibold text-oyik-navy mb-4">Transcript</h3>
       <div className="space-y-4 max-h-[400px] overflow-y-auto">
-        {safeTranscript.map((message: Message, index: number) => (
+        {transcript.map((message: Message, index: number) => (
           <div
             key={index}
             className={`flex gap-3 ${message.role === 'user' ? 'flex-row-reverse' : ''}`}
@@ -55,7 +41,21 @@ export default function ChatTranscriptPanel({ transcript }: ChatTranscriptPanelP
                   : 'bg-oyik-purple text-white'
               }`}
             >
-              {message.text}
+              <p>{message.text}</p>
+              {message.timestamp ? (
+                <p
+                  className={`mt-2 text-[11px] ${
+                    message.role === 'agent' ? 'text-oyik-muted' : 'text-white/70'
+                  }`}
+                >
+                  {new Date(message.timestamp).toLocaleString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    hour: 'numeric',
+                    minute: '2-digit',
+                  })}
+                </p>
+              ) : null}
             </div>
           </div>
         ))}
