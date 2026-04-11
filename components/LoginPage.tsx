@@ -61,7 +61,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
         return
       }
 
-      // Create user with custom metadata via admin
+      // Create user - we'll send verification via Resend instead
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
@@ -71,7 +71,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
             organization_name: organizationName.trim(),
             email_verified: false,
           },
-          emailRedirectTo: `${window.location.origin}/api/auth/callback`,
+          emailRedirectTo: '',
         },
       })
 
@@ -83,7 +83,8 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
 
       // Send verification email via Resend
       try {
-        const verificationUrl = `${window.location.origin}/api/auth/verify?email=${encodeURIComponent(email)}&name=${encodeURIComponent(fullName)}`
+        const verificationToken = btoa(`${email}:${Date.now()}`)
+        const verificationUrl = `${window.location.origin}/verify?token=${verificationToken}`
         
         await fetch('/api/send-verification', {
           method: 'POST',

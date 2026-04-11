@@ -11,7 +11,7 @@ export async function POST(request: Request) {
     }
 
     const { error } = await resend.emails.send({
-      from: 'Oyik AI <noreply@oyik.ai>',
+      from: 'Oyik AI <onboarding@resend.dev>',
       to: email,
       subject: 'Reset your Oyik Dashboard password',
       html: `
