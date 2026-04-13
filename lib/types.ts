@@ -32,8 +32,11 @@ export interface Call {
   startedAt: string
   duration: string
   number: string
+  direction?: 'inbound' | 'outbound' | string | null
   status: CallStatus
   summary: string
+  userSentiment?: string | null
+  callSuccessful?: boolean | null
   transcript: Message[]
   lead: LeadSummary
   agentId?: string | null

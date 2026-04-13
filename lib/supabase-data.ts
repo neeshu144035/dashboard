@@ -52,11 +52,14 @@ type VoiceCallRow = {
   retell_call_id: string
   retell_agent_id: string | null
   from_number: string | null
+  to_number: string | null
+  direction: string | null
   status: string | null
   duration_seconds: number | null
   duration_label: string | null
   summary: string | null
   recording_url: string | null
+  metadata: Record<string, any> | null
   started_at: string
 }
 
@@ -261,7 +264,7 @@ export async function getCalls(organizationId: string, limit = 50): Promise<Call
   const { data: calls, error: callError } = await supabase
     .from('voice_calls')
     .select(
-      'id, lead_id, retell_call_id, retell_agent_id, from_number, status, duration_seconds, duration_label, summary, recording_url, started_at'
+      'id, lead_id, retell_call_id, retell_agent_id, from_number, to_number, direction, status, duration_seconds, duration_label, summary, recording_url, metadata, started_at'
     )
     .eq('organization_id', organizationId)
     .order('started_at', { ascending: false })
@@ -305,6 +308,16 @@ export async function getCalls(organizationId: string, limit = 50): Promise<Call
   return calls.map((call) => {
     const lead = call.lead_id ? leadLookup.get(call.lead_id) : undefined
     const status = call.status?.toLowerCase() ?? 'in_progress'
+    const direction = call.direction?.toLowerCase() === 'outbound' ? 'outbound' : 'inbound'
+    const displayNumber = direction === 'outbound' ? call.to_number : call.from_number
+    
+    // Extract metadata values if they exist
+    const userSentiment = call.metadata?.call_analysis?.user_sentiment
+      ?? call.metadata?.user_sentiment
+      ?? null
+    const callSuccessful = call.metadata?.call_analysis?.call_successful
+      ?? call.metadata?.call_successful
+      ?? null
 
     return {
       id: call.id,
@@ -312,15 +325,18 @@ export async function getCalls(organizationId: string, limit = 50): Promise<Call
       date: formatDate(call.started_at),
       startedAt: call.started_at,
       duration: formatDuration(call.duration_seconds, call.duration_label),
-      number: call.from_number || 'Unknown number',
+      number: displayNumber || call.from_number || call.to_number || 'Unknown number',
+      direction,
       status: status === 'completed' ? 'completed' : status === 'in_progress' ? 'in_progress' : 'missed',
       summary: call.summary || 'Awaiting post-call analysis',
+      userSentiment,
+      callSuccessful,
       transcript: transcriptLookup.get(call.id) ?? [],
       lead: {
         id: lead?.id ?? null,
-        name: lead?.full_name || call.from_number || 'Unknown caller',
+        name: lead?.full_name || displayNumber || 'Unknown caller',
         email: lead?.email ?? null,
-        phone: lead?.phone ?? call.from_number ?? null,
+        phone: lead?.phone ?? displayNumber ?? null,
       },
       agentId: call.retell_agent_id,
       recordingUrl: call.recording_url,

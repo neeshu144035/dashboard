@@ -61,7 +61,14 @@ export default function VoiceAgentView({ organizationId }: VoiceAgentViewProps) 
                       : 'hover:bg-gray-50'
                   }`}
                 >
-                  <p className="text-sm font-medium text-oyik-navy">{call.lead.name}</p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-medium text-oyik-navy">{call.lead.name}</p>
+                    {call.direction && (
+                      <span className="text-[9px] uppercase font-bold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
+                        {call.direction.slice(0, 3)}
+                      </span>
+                    )}
+                  </div>
                   <p className="text-xs text-oyik-muted mt-1">
                     {call.date} | {call.duration}
                   </p>
@@ -88,17 +95,41 @@ export default function VoiceAgentView({ organizationId }: VoiceAgentViewProps) 
                 <div className="bg-white rounded-2xl border border-oyik-border shadow-[0_2px_8px_rgba(124,58,237,0.05)] p-5">
                   <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                     <div>
-                      <h3 className="text-lg font-semibold text-oyik-navy">{selectedCall.lead.name}</h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-lg font-semibold text-oyik-navy">{selectedCall.lead.name}</h3>
+                        {selectedCall.direction && (
+                          <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-600 uppercase tracking-wider">
+                            {selectedCall.direction}
+                          </span>
+                        )}
+                      </div>
                       <p className="text-sm text-oyik-muted">
+                        {selectedCall.direction === 'outbound' ? 'Called: ' : 'Caller: '}
                         {selectedCall.lead.phone || selectedCall.number} | Started {new Date(selectedCall.startedAt).toLocaleString('en-US')}
                       </p>
                       <p className="text-sm text-oyik-muted mt-1">
                         Retell call ID: {selectedCall.externalId}
                       </p>
                     </div>
-                    <span className="rounded-full bg-oyik-lavender px-3 py-1 text-xs font-semibold text-oyik-purple">
-                      {selectedCall.status}
-                    </span>
+                    <div className="flex flex-col items-end gap-2">
+                      <span className="rounded-full bg-oyik-lavender px-3 py-1 text-xs font-semibold text-oyik-purple">
+                        {selectedCall.status}
+                      </span>
+                      {selectedCall.userSentiment && (
+                        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                          selectedCall.userSentiment.toLowerCase().includes('positive') ? 'bg-emerald-100 text-emerald-800' :
+                          selectedCall.userSentiment.toLowerCase().includes('negative') ? 'bg-red-100 text-red-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}>
+                          Sentiment: {selectedCall.userSentiment}
+                        </span>
+                      )}
+                      {selectedCall.callSuccessful !== null && selectedCall.callSuccessful !== undefined && (
+                        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${selectedCall.callSuccessful ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}`}>
+                          {selectedCall.callSuccessful ? 'Successful Goal' : 'Goal Not Reached'}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
 
