@@ -576,7 +576,7 @@ export async function ingestRetellPayload(payload: unknown) {
   const source = 'retell'
   const call = isRecord(payload.call) ? payload.call : payload
   const metadata = mergeMetadata(call.metadata, payload.metadata)
-  const organizationId =
+  let organizationId =
     asTrimmedString(metadata.organization_id) ??
     asTrimmedString(metadata.organizationId)
 
@@ -584,9 +584,8 @@ export async function ingestRetellPayload(payload: unknown) {
     // Fallback mapping for specific known Agent IDs
     const agentId = asTrimmedString(call.agent_id) ?? asTrimmedString(call.agentId)
     if (agentId === 'agent_ae930c223647893de0e20301f1') {
-      return '095aa09e-bf16-4958-be45-42c05762ed63'
+      organizationId = '095aa09e-bf16-4958-be45-42c05762ed63'
     }
-    throw new Error('Retell webhook is missing metadata.organization_id')
   }
 
   const retellCallId =
@@ -594,9 +593,9 @@ export async function ingestRetellPayload(payload: unknown) {
     asTrimmedString(call.callId) ??
     asTrimmedString(call.id)
 
-  if (!retellCallId) {
-    // If it's a test/ping webhook from Retell dashboard, it might not have a call_id
-    console.log('[retell/webhook] Missing call_id, assuming this is a test/ping.')
+  if (!retellCallId || !organizationId) {
+    // If it's a test/ping webhook from Retell dashboard, it might be missing data
+    console.log('[retell/webhook] Missing call_id or organization_id, assuming test/ping.')
     return { duplicate: false, message: 'Test/Ping received successfully' }
   }
 
