@@ -484,16 +484,28 @@ export async function ingestChatbotPayload(payload: ChatbotIngestPayload) {
       }
       if (payload.botResponse) {
         let botContent = ''
+        let properties = undefined
         if (typeof payload.botResponse === 'string') {
           botContent = payload.botResponse
         } else if (payload.botResponse && typeof payload.botResponse === 'object') {
-          botContent = (payload.botResponse as { message?: string }).message ?? JSON.stringify(payload.botResponse)
+          const resp = payload.botResponse as { message?: string; properties?: unknown[] }
+          botContent = resp.message ?? ''
+          properties = resp.properties
         }
-        messages.push({
-          role: 'agent',
-          direction: 'outgoing',
-          content: botContent,
-        })
+        if (botContent) {
+          messages.push({
+            role: 'agent',
+            direction: 'outgoing',
+            content: botContent,
+          })
+          if (properties && Array.isArray(properties) && properties.length > 0) {
+            payload.session = payload.session || {}
+            payload.session.metadata = { 
+              ...(payload.session.metadata || {}),
+              properties,
+            }
+          }
+        }
       }
     }
 
