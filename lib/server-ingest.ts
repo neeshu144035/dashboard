@@ -61,7 +61,7 @@ export type ChatbotIngestPayload = {
   messages?: ChatbotMessageInput[]
   // Allow simple format from n8n
   userMessage?: string
-  botResponse?: string
+  botResponse?: string | { message?: string; [key: string]: unknown }
 }
 
 function isRecord(value: unknown): value is JsonRecord {
@@ -480,9 +480,8 @@ export async function ingestChatbotPayload(payload: ChatbotIngestPayload) {
         let botContent = ''
         if (typeof payload.botResponse === 'string') {
           botContent = payload.botResponse
-        } else if (payload.botResponse && typeof payload.botResponse === 'object') {
-          const resp = payload.botResponse as { message?: string }
-          botContent = resp.message ?? ''
+        } else if (typeof payload.botResponse === 'object' && payload.botResponse !== null) {
+          botContent = payload.botResponse.message ?? ''
         }
         if (botContent) {
           messages.push({
