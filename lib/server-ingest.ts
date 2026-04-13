@@ -463,13 +463,7 @@ export async function ingestChatbotPayload(payload: ChatbotIngestPayload) {
   }
 
   const source = asTrimmedString(payload.source) ?? 'n8n_chatbot'
-  const eventType = asTrimmedString(payload.eventType) ?? 'chat_message_ingested'
-  const externalEventId = asTrimmedString(payload.eventId)
   const supabase = getSupabaseAdmin()
-
-  if (await hasWebhookEvent(supabase, source, eventType, externalEventId)) {
-    return { duplicate: true }
-  }
 
   try {
     // Handle simple format from n8n
@@ -484,13 +478,11 @@ export async function ingestChatbotPayload(payload: ChatbotIngestPayload) {
       }
       if (payload.botResponse) {
         let botContent = ''
-        let properties = undefined
         if (typeof payload.botResponse === 'string') {
           botContent = payload.botResponse
         } else if (payload.botResponse && typeof payload.botResponse === 'object') {
-          const resp = payload.botResponse as { message?: string; properties?: unknown[] }
+          const resp = payload.botResponse as { message?: string }
           botContent = resp.message ?? ''
-          properties = resp.properties
         }
         if (botContent) {
           messages.push({
@@ -498,54 +490,76 @@ export async function ingestChatbotPayload(payload: ChatbotIngestPayload) {
             direction: 'outgoing',
             content: botContent,
           })
-          if (properties && Array.isArray(properties) && properties.length > 0) {
-            payload.session = payload.session || {}
-            payload.session.metadata = { 
-              ...(payload.session.metadata || {}),
-              properties,
-            }
-          }
         }
       }
     }
 
-    const leadId = null // Lead storage disabled
-    const sessionId = await upsertChatSession(supabase, organizationId, source, payload, leadId)
-    const messageResult = await insertChatMessages(
-      supabase,
-      organizationId,
-      source,
-      sessionId,
-      leadId,
-      messages
-    )
-
-    await recordWebhookEvent(supabase, {
-      organizationId,
-      source,
-      eventType,
-      externalEventId,
-      payload,
-      processingStatus: 'processed',
-    })
-
-    return {
-      duplicate: false,
-      leadId,
-      sessionId,
-      messageCount: messageResult.totalCount,
-      insertedMessages: messageResult.insertedCount,
+    // Get or create session
+    const sessionExternalId = asTrimmedString(payload.session?.externalId) ?? asTrimmedString(payload.sessionId)
+    if (!sessionExternalId) {
+      throw new Error('Chat ingest requires sessionId')
     }
+
+    // Check if session exists
+    const { data: existingSession } = await supabase
+      .from('chat_sessions')
+      .select('id')
+      .eq('organization_id', organizationId)
+      .eq('source', source)
+      .eq('source_session_id', sessionExternalId)
+      .maybeSingle()
+
+    let sessionId: string
+
+    if (existingSession) {
+      sessionId = existingSession.id
+    } else {
+      // Create new session
+      const { data: newSession, error: sessionError } = await supabase
+        .from('chat_sessions')
+        .insert({
+          organization_id: organizationId,
+          source,
+          source_session_id: sessionExternalId,
+          channel: 'website',
+          status: 'open',
+        })
+        .select('id')
+        .single()
+
+      if (sessionError) {
+        console.error('Session insert error:', sessionError)
+        throw new Error('Failed to create session: ' + sessionError.message)
+      }
+
+      sessionId = newSession.id
+    }
+
+    // Insert messages
+    if (messages.length > 0) {
+      const messageRows = messages.map((msg) => ({
+        organization_id: organizationId,
+        session_id: sessionId,
+        source,
+        role: msg.role,
+        direction: msg.direction,
+        content: msg.content,
+        sent_at: new Date().toISOString(),
+      }))
+
+      const { error: msgError } = await supabase
+        .from('chat_messages')
+        .insert(messageRows)
+
+      if (msgError) {
+        console.error('Message insert error:', msgError)
+        throw new Error('Failed to insert messages: ' + msgError.message)
+      }
+    }
+
+    return { sessionId, messagesStored: messages.length }
   } catch (error) {
-    await recordWebhookEvent(supabase, {
-      organizationId,
-      source,
-      eventType,
-      externalEventId,
-      payload,
-      processingStatus: 'failed',
-      errorMessage: error instanceof Error ? error.message : 'Unknown ingest failure',
-    })
+    console.error('Ingest error:', error)
     throw error
   }
 }
