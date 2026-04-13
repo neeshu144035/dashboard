@@ -595,7 +595,9 @@ export async function ingestRetellPayload(payload: unknown) {
     asTrimmedString(call.id)
 
   if (!retellCallId) {
-    throw new Error('Retell webhook is missing call_id')
+    // If it's a test/ping webhook from Retell dashboard, it might not have a call_id
+    console.log('[retell/webhook] Missing call_id, assuming this is a test/ping.')
+    return { duplicate: false, message: 'Test/Ping received successfully' }
   }
 
   const supabase = getSupabaseAdmin()
