@@ -527,8 +527,8 @@ export async function ingestChatbotPayload(payload: ChatbotIngestPayload) {
         .single()
 
       if (sessionError) {
-        console.error('Session insert error:', sessionError)
-        throw new Error('Failed to create session: ' + sessionError.message)
+        console.error('Session insert error:', JSON.stringify(sessionError))
+        throw new Error('Failed to create session: ' + sessionError.message + ' | details: ' + JSON.stringify(sessionError))
       }
 
       sessionId = newSession.id
