@@ -505,7 +505,7 @@ export async function ingestChatbotPayload(payload: ChatbotIngestPayload) {
       source,
       sessionId,
       leadId,
-      payload.messages ?? []
+      messages
     )
 
     await recordWebhookEvent(supabase, {
