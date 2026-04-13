@@ -4,7 +4,15 @@ export const runtime = 'nodejs'
 
 export async function POST(request: Request) {
   try {
-    const payload = (await request.json()) as ChatbotIngestPayload
+    let payload: ChatbotIngestPayload
+    try {
+      payload = (await request.json()) as ChatbotIngestPayload
+    } catch (e) {
+      return Response.json({ ok: false, error: 'Invalid JSON' }, { status: 400 })
+    }
+
+    console.log('Chatbot payload received:', JSON.stringify(payload).slice(0, 500))
+
     const result = await ingestChatbotPayload(payload)
 
     return Response.json({
