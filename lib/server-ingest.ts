@@ -581,6 +581,11 @@ export async function ingestRetellPayload(payload: unknown) {
     asTrimmedString(metadata.organizationId)
 
   if (!organizationId) {
+    // Fallback mapping for specific known Agent IDs
+    const agentId = asTrimmedString(call.agent_id) ?? asTrimmedString(call.agentId)
+    if (agentId === 'agent_ae930c223647893de0e20301f1') {
+      return '095aa09e-bf16-4958-be45-42c05762ed63'
+    }
     throw new Error('Retell webhook is missing metadata.organization_id')
   }
 
