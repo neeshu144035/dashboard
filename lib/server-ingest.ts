@@ -580,11 +580,20 @@ export async function ingestRetellPayload(payload: unknown) {
     asTrimmedString(metadata.organization_id) ??
     asTrimmedString(metadata.organizationId)
 
+  console.log(`[retell/webhook] Processing event: ${eventType} for call: ${call.call_id || call.id}`)
+  console.log(`[retell/webhook] Agent ID: ${call.agent_id || call.agentId}`)
+  console.log(`[retell/webhook] Raw Metadata:`, JSON.stringify(metadata))
+
   if (!organizationId) {
     // Fallback mapping for specific known Agent IDs
     const agentId = asTrimmedString(call.agent_id) ?? asTrimmedString(call.agentId)
+    console.log(`[retell/webhook] No organizationId in metadata. Checking Agent ID: ${agentId}`)
+    
     if (agentId === 'agent_ae930c223647893de0e20301f1') {
       organizationId = '095aa09e-bf16-4958-be45-42c05762ed63'
+      console.log(`[retell/webhook] Applied hardcoded mapping for BM Estate (095aa...63)`)
+    } else {
+      console.log(`[retell/webhook] WARNING: Unmapped Agent ID: ${agentId}. Call will be ignored.`)
     }
   }
 
@@ -594,13 +603,13 @@ export async function ingestRetellPayload(payload: unknown) {
     asTrimmedString(call.id)
 
   if (!retellCallId || !organizationId) {
-    // If it's a test/ping webhook from Retell dashboard, it might be missing data
-    console.log('[retell/webhook] Missing call_id or organization_id, assuming test/ping.')
-    return { duplicate: false, message: 'Test/Ping received successfully' }
+    console.log(`[retell/webhook] REJECTED: Missing callId (${retellCallId}) or orgId (${organizationId})`)
+    return { duplicate: false, message: 'Missing required IDs' }
   }
 
   const supabase = getSupabaseAdmin()
   if (await hasWebhookEvent(supabase, source, eventType, retellCallId)) {
+    console.log(`[retell/webhook] Duplicate event ignored: ${eventType} for ${retellCallId}`)
     return { duplicate: true }
   }
 
