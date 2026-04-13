@@ -59,6 +59,9 @@ export type ChatbotIngestPayload = {
   }
   lead?: ChatbotLeadInput
   messages?: ChatbotMessageInput[]
+  // Allow simple format from n8n
+  userMessage?: string
+  botResponse?: string
 }
 
 function isRecord(value: unknown): value is JsonRecord {
@@ -469,6 +472,31 @@ export async function ingestChatbotPayload(payload: ChatbotIngestPayload) {
   }
 
   try {
+    // Handle simple format from n8n
+    let messages = payload.messages ?? []
+    if (!messages.length && (payload.userMessage || payload.botResponse)) {
+      if (payload.userMessage) {
+        messages.push({
+          role: 'user',
+          direction: 'incoming',
+          content: payload.userMessage,
+        })
+      }
+      if (payload.botResponse) {
+        let botContent = ''
+        if (typeof payload.botResponse === 'string') {
+          botContent = payload.botResponse
+        } else if (payload.botResponse && typeof payload.botResponse === 'object') {
+          botContent = (payload.botResponse as { message?: string }).message ?? JSON.stringify(payload.botResponse)
+        }
+        messages.push({
+          role: 'agent',
+          direction: 'outgoing',
+          content: botContent,
+        })
+      }
+    }
+
     const leadId = null // Lead storage disabled
     const sessionId = await upsertChatSession(supabase, organizationId, source, payload, leadId)
     const messageResult = await insertChatMessages(
