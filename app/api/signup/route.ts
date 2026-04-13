@@ -28,6 +28,8 @@ export async function POST(request: Request) {
       return Response.json({ error: createError.message }, { status: 400 })
     }
 
+    const userId = user?.user?.id
+
     // Create organization and profile via trigger (handled by DB)
     // The trigger should fire on auth.users insert
     
@@ -43,7 +45,7 @@ export async function POST(request: Request) {
       console.error('Welcome email failed:', e)
     }
 
-    return Response.json({ ok: true, userId: user.id })
+    return Response.json({ ok: true, userId })
   } catch (error) {
     return Response.json(
       { error: error instanceof Error ? error.message : 'Signup failed' },
