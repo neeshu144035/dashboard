@@ -589,7 +589,11 @@ export async function ingestRetellPayload(payload: unknown) {
     const agentId = asTrimmedString(call.agent_id) ?? asTrimmedString(call.agentId)
     console.log(`[retell/webhook] No organizationId in metadata. Checking Agent ID: ${agentId}`)
     
-    if (agentId === 'agent_ae930c223647893de0e20301f1') {
+    // Mapping for BM Estate organization
+    if (
+      agentId === 'agent_ae930c223647893de0e20301f1' || // Outbound Agent
+      agentId === 'agent_260c6da594883877249f642474'    // Inbound Agent
+    ) {
       organizationId = '095aa09e-bf16-4958-be45-42c05762ed63'
       console.log(`[retell/webhook] Applied hardcoded mapping for BM Estate (095aa...63)`)
     } else {
