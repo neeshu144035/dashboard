@@ -736,7 +736,10 @@ export async function ingestRetellPayload(payload: unknown) {
 
         const offset = (maxSeqRow?.sequence_number ?? -1) + 1
 
-        // Append subagent transcript turns to root call with offset sequence numbers
+        // Time offset: subagent timestamps start at 0, so offset by root call's duration
+        const timeOffsetSeconds = rootDuration
+
+        // Append subagent transcript turns to root call with offset sequence numbers and timestamps
         for (const turn of turns) {
           const { error } = await supabase
             .from('voice_transcript_turns')
@@ -748,6 +751,8 @@ export async function ingestRetellPayload(payload: unknown) {
                 source,
                 ...turn,
                 sequence_number: turn.sequence_number + offset,
+                start_seconds: turn.start_seconds != null ? turn.start_seconds + timeOffsetSeconds : null,
+                end_seconds: turn.end_seconds != null ? turn.end_seconds + timeOffsetSeconds : null,
               },
               { onConflict: 'call_id,sequence_number' }
             )
