@@ -679,8 +679,9 @@ export async function ingestRetellPayload(payload: unknown) {
           : null,
     }
 
-    // Heuristic for PSTN Call Transfers to Subagents:
-    // Instead of creating a separate call row, merge the subagent transcript into the parent call.
+    // Robust PSTN Call Transfer Merging:
+    // Handles chain transfers of any depth (Kimi → Sam → John → ...)
+    // Always finds the ROOT call (non-subagent) and merges into it.
     const SUBAGENT_IDS = [
       'agent_7ca0130c2622587d9438659e42',
       'agent_c99e0e275a93dc201f54692734',
@@ -689,94 +690,104 @@ export async function ingestRetellPayload(payload: unknown) {
     ]
     const isSubagent = SUBAGENT_IDS.includes(callPayload.retell_agent_id ?? '')
 
-    if (isSubagent && callPayload.from_number) {
-      // Find the parent call (Kimi's outbound/inbound call that triggered this transfer)
-      const { data: parentCall } = await supabase
+    if (isSubagent && (eventType === 'call_ended' || eventType === 'call_analyzed')) {
+      // Find the most recent ROOT call (non-subagent) in this organization.
+      // Since all subagent calls get merged into the root, the root is always
+      // the most recent voice_call whose retell_agent_id is NOT a subagent.
+      const { data: rootCall } = await supabase
         .from('voice_calls')
         .select('id, from_number, to_number, direction, transcript_text, duration_seconds')
         .eq('organization_id', organizationId)
-        .neq('retell_call_id', retellCallId)
+        .not('retell_agent_id', 'in', `(${SUBAGENT_IDS.join(',')})`)
         .order('started_at', { ascending: false })
         .limit(1)
         .maybeSingle()
 
-      if (parentCall) {
-        const isOutboundTransfer = parentCall.direction === 'outbound' && parentCall.from_number === callPayload.from_number
-        const isInboundTransfer = parentCall.direction === 'inbound' && parentCall.to_number === callPayload.from_number
+      if (rootCall) {
+        console.log(`[retell/webhook] Merging subagent call ${retellCallId} into root call ${rootCall.id}`)
 
-        if (isOutboundTransfer || isInboundTransfer) {
-          console.log(`[retell/webhook] Merging subagent call ${retellCallId} into parent call ${parentCall.id}`)
+        // Merge transcript text
+        const mergedTranscript = [rootCall.transcript_text, transcriptText].filter(Boolean).join('\n')
 
-          // Merge transcript text
-          const mergedTranscript = [parentCall.transcript_text, transcriptText].filter(Boolean).join('\n')
+        // Merge duration
+        const rootDuration = rootCall.duration_seconds ?? 0
+        const subagentDuration = callPayload.duration_seconds ?? 0
+        const mergedDuration = rootDuration + subagentDuration
 
-          // Merge duration
-          const parentDuration = parentCall.duration_seconds ?? 0
-          const subagentDuration = callPayload.duration_seconds ?? 0
-          const mergedDuration = parentDuration + subagentDuration
-
-          // Update parent call with merged data
-          await supabase
-            .from('voice_calls')
-            .update({
-              transcript_text: mergedTranscript,
-              duration_seconds: mergedDuration,
-              duration_label: humanizeDuration(mergedDuration),
-              ended_at: callPayload.ended_at,
-            })
-            .eq('id', parentCall.id)
-
-          // Get the max sequence_number already on the parent call
-          const { data: maxSeqRow } = await supabase
-            .from('voice_transcript_turns')
-            .select('sequence_number')
-            .eq('call_id', parentCall.id)
-            .order('sequence_number', { ascending: false })
-            .limit(1)
-            .maybeSingle()
-
-          const offset = (maxSeqRow?.sequence_number ?? -1) + 1
-
-          // Append subagent transcript turns to parent call with offset sequence numbers
-          for (const turn of turns) {
-            const { error } = await supabase
-              .from('voice_transcript_turns')
-              .upsert(
-                {
-                  organization_id: organizationId,
-                  call_id: parentCall.id,
-                  lead_id: leadId,
-                  source,
-                  ...turn,
-                  sequence_number: turn.sequence_number + offset,
-                },
-                { onConflict: 'call_id,sequence_number' }
-              )
-
-            if (error) {
-              throw error
-            }
-          }
-
-          // Record the webhook event
-          await recordWebhookEvent(supabase, {
-            organizationId,
-            source,
-            eventType,
-            externalEventId: retellCallId,
-            payload,
-            processingStatus: 'processed',
+        // Update root call with merged data
+        await supabase
+          .from('voice_calls')
+          .update({
+            transcript_text: mergedTranscript,
+            duration_seconds: mergedDuration,
+            duration_label: humanizeDuration(mergedDuration),
+            ended_at: callPayload.ended_at,
           })
+          .eq('id', rootCall.id)
 
-          return {
-            duplicate: false,
-            callId: parentCall.id,
-            leadId,
-            transcriptTurns: turns.length,
-            merged: true,
+        // Get the max sequence_number already on the root call
+        const { data: maxSeqRow } = await supabase
+          .from('voice_transcript_turns')
+          .select('sequence_number')
+          .eq('call_id', rootCall.id)
+          .order('sequence_number', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+
+        const offset = (maxSeqRow?.sequence_number ?? -1) + 1
+
+        // Append subagent transcript turns to root call with offset sequence numbers
+        for (const turn of turns) {
+          const { error } = await supabase
+            .from('voice_transcript_turns')
+            .upsert(
+              {
+                organization_id: organizationId,
+                call_id: rootCall.id,
+                lead_id: leadId,
+                source,
+                ...turn,
+                sequence_number: turn.sequence_number + offset,
+              },
+              { onConflict: 'call_id,sequence_number' }
+            )
+
+          if (error) {
+            throw error
           }
         }
+
+        // Record the webhook event
+        await recordWebhookEvent(supabase, {
+          organizationId,
+          source,
+          eventType,
+          externalEventId: retellCallId,
+          payload,
+          processingStatus: 'processed',
+        })
+
+        return {
+          duplicate: false,
+          callId: rootCall.id,
+          leadId,
+          transcriptTurns: turns.length,
+          merged: true,
+        }
       }
+    }
+
+    // For subagent call_started events, just record the webhook and skip creating a row
+    if (isSubagent && eventType === 'call_started') {
+      await recordWebhookEvent(supabase, {
+        organizationId,
+        source,
+        eventType,
+        externalEventId: retellCallId,
+        payload,
+        processingStatus: 'processed',
+      })
+      return { duplicate: false, callId: null, merged: false, message: 'Subagent call_started skipped' }
     }
 
     // Normal flow: create or update the voice_call row
