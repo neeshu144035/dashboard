@@ -14,16 +14,15 @@ export default function ChatTranscriptPanel({ transcript }: ChatTranscriptPanelP
         <p className="text-oyik-muted text-sm">No transcript available</p>
       </div>
     )
-    )
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-oyik-border shadow-[0_2px_8px_rgba(124,58,237,0.05)] p-5">
+    <div className="bg-oyik-cream rounded-2xl shadow-nm-raised p-6">
       <h3 className="text-sm font-semibold text-oyik-navy mb-4">Transcript</h3>
       <div className="space-y-4 max-h-[400px] overflow-y-auto">
         {transcript.map((message: Message, index: number) => {
           const isSameAsPrevious = index > 0 && transcript[index - 1].role === message.role;
-          
+
           return (
             <div
               key={index}
