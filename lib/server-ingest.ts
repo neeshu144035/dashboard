@@ -677,7 +677,42 @@ export async function ingestRetellPayload(payload: unknown) {
           : null,
     }
 
-    const { data: existingCall, error: existingCallError } = await supabase
+    // Heuristic for PSTN Call Transfers to Subagents:
+    // If this call came from an internal AI system number (e.g. Kimi), find the original user to stitch the caller ID.
+    if (callPayload.from_number) {
+      const isSubagent = [
+        'agent_7ca0130c2622587d9438659e42',
+        'agent_c99e0e275a93dc201f54692734',
+        'agent_da9c114506c50c0cb97ec34ded',
+        'agent_1f4dcccc1bda96547824daa1e4'
+      ].includes(callPayload.retell_agent_id ?? '')
+      
+      if (isSubagent) {
+        const { data: parentCall } = await supabase
+          .from('voice_calls')
+          .select('from_number, to_number, direction')
+          .eq('organization_id', organizationId)
+          .neq('retell_call_id', retellCallId) // Exclude current call
+          .order('started_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (parentCall) {
+          // If the last call was Kimi calling the user, Sam sees Kimi's caller ID (which matches parent.from_number)
+          if (parentCall.direction === 'outbound' && parentCall.from_number === callPayload.from_number) {
+            callPayload.from_number = parentCall.to_number // Retrieve User
+            callPayload.direction = 'transferred'
+          }
+          // If the User called Kimi, Sam sees Kimi's caller ID (which matches parent.to_number)
+          else if (parentCall.direction === 'inbound' && parentCall.to_number === callPayload.from_number) {
+            callPayload.from_number = parentCall.from_number // Retrieve User
+            callPayload.direction = 'transferred'
+          }
+        }
+      }
+    }
+
+    const { data: existingCall, error: existingCallError2 } = await supabase
       .from('voice_calls')
       .select('id')
       .eq('organization_id', organizationId)
@@ -685,8 +720,8 @@ export async function ingestRetellPayload(payload: unknown) {
       .eq('retell_call_id', retellCallId)
       .maybeSingle<VoiceCallRow>()
 
-    if (existingCallError) {
-      throw existingCallError
+    if (existingCallError2) {
+      throw existingCallError2
     }
 
     let callId: string
