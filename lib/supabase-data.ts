@@ -99,7 +99,9 @@ function normalizeMessageRole(role: string | null, direction?: string | null): M
     normalizedRole === 'agent' ||
     normalizedRole === 'bot' ||
     normalizedRole === 'ai' ||
-    normalizedDirection === 'outgoing'
+    normalizedRole === 'transfer_target' ||
+    normalizedDirection === 'outgoing' ||
+    normalizedDirection === 'assistant'
   ) {
     return 'agent'
   }
