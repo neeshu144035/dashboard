@@ -73,7 +73,7 @@ type VoiceTranscriptRow = {
 }
 
 function formatDate(date: string) {
-  return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
 }
 
 function formatDuration(seconds?: number | null, label?: string | null) {

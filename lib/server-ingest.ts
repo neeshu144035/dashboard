@@ -639,11 +639,17 @@ export async function ingestRetellPayload(payload: unknown) {
 
     const turns = extractRetellTurns(call)
     const transcriptText = extractRetellTranscriptText(call, turns)
-    const durationFromMilliseconds = maybeNumber(call.call_duration_ms)
+    const durationFromMilliseconds = maybeNumber(call.duration_ms) ?? maybeNumber(call.call_duration_ms)
+    const startTs = maybeNumber(call.start_timestamp) ?? maybeNumber(call.start_timestamp_ms)
+    const endTs = maybeNumber(call.end_timestamp) ?? maybeNumber(call.end_timestamp_ms)
+    const durationFromTimestamps = (startTs && endTs && endTs > startTs)
+      ? Math.round((endTs - startTs) / 1000)
+      : undefined
     const durationSeconds =
       maybeNumber(call.duration_seconds) ??
       maybeNumber(call.call_duration_seconds) ??
-      (durationFromMilliseconds !== undefined ? Math.round(durationFromMilliseconds / 1000) : undefined)
+      (durationFromMilliseconds !== undefined ? Math.round(durationFromMilliseconds / 1000) : undefined) ??
+      durationFromTimestamps
 
     const callPayload = {
       organization_id: organizationId,
