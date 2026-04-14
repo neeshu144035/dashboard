@@ -608,8 +608,9 @@ export async function ingestRetellPayload(payload: unknown) {
 
   const supabase = getSupabaseAdmin()
 
-  // NEW: Always store the webhook event for debugging, even if mapping fails
-  try {
+  if (!retellCallId || !organizationId) {
+    console.log(`[retell/webhook] REJECTED: Missing callId (${retellCallId}) or orgId (${organizationId})`)
+    // Still store the event for debugging if mapping failed
     await supabase.from('webhook_events').insert({
       organization_id: organizationId || null,
       source,
@@ -617,15 +618,10 @@ export async function ingestRetellPayload(payload: unknown) {
       external_event_id: retellCallId || 'missing_id',
       payload,
     })
-  } catch (dbErr) {
-    console.error('[retell/webhook] Failed to store raw event:', dbErr)
-  }
-
-  if (!retellCallId || !organizationId) {
-    console.log(`[retell/webhook] REJECTED: Missing callId (${retellCallId}) or orgId (${organizationId})`)
     return { duplicate: false, message: `Missing required IDs. Agent ID was: ${call.agent_id || call.agentId}` }
   }
 
+  // Check if we've ALREADY fully processed this specific event to avoid double-processing
   if (await hasWebhookEvent(supabase, source, eventType, retellCallId)) {
     console.log(`[retell/webhook] Duplicate event ignored: ${eventType} for ${retellCallId}`)
     return { duplicate: true }
