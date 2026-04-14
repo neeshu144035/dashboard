@@ -1,8 +1,14 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f0ede8;
-  --foreground: #374151;
+  --background: #f1f3f6;
+  --foreground: #2d3436;
+  
+  /* Neumorphic Shadow Tokens */
+  --nm-bg: #f1f3f6;
+  --nm-shadow: 9px 9px 16px rgba(163, 177, 198, 0.6), -9px -9px 16px rgba(255, 255, 255, 0.5);
+  --nm-shadow-sm: 4px 4px 8px rgba(163, 177, 198, 0.4), -4px -4px 8px rgba(255, 255, 255, 0.8);
+  --nm-inset: inset 2px 2px 5px rgba(163, 177, 198, 0.5), inset -2px -2px 5px rgba(255, 255, 255, 0.8);
 }
 
 @theme inline {
@@ -10,18 +16,22 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-inter);
   
-  --color-oyik-cream: #f0ede8;
+  --color-oyik-cream: #f1f3f6;
   --color-oyik-white: #ffffff;
   --color-oyik-purple: #7c3aed;
   --color-oyik-purple2: #8b5cf6;
   --color-oyik-purple3: #a78bfa;
   --color-oyik-lavender: #ede9fe;
   --color-oyik-navy: #1e1b4b;
-  --color-oyik-text: #374151;
+  --color-oyik-text: #2d3436;
   --color-oyik-muted: #6b7280;
   --color-oyik-hint: #9ca3af;
-  --color-oyik-border: #e5e7eb;
+  --color-oyik-border: #d1d9e6;
   --color-oyik-border2: #ddd6fe;
+
+  --shadow-nm-raised: 9px 9px 16px rgba(163, 177, 198, 0.6), -9px -9px 16px rgba(255, 255, 255, 0.5);
+  --shadow-nm-raised-sm: 4px 4px 8px rgba(163, 177, 198, 0.4), -4px -4px 8px rgba(255, 255, 255, 0.8);
+  --shadow-nm-inset: inset 2px 2px 5px rgba(163, 177, 198, 0.5), inset -2px -2px 5px rgba(255, 255, 255, 0.8);
 }
 
 body {

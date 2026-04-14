@@ -18,15 +18,15 @@ export default function Sidebar({ activeView, onViewChange, userEmail, userName 
   ]
 
   return (
-    <aside className="w-[220px] min-w-[220px] bg-white border-r border-oyik-border flex flex-col h-screen overflow-hidden">
-      <div className="p-4 flex items-center gap-3">
-        <div className="w-10 h-10 rounded-full bg-oyik-lavender overflow-hidden flex items-center justify-center p-1">
-          <Image src="/oyik-logo.png" alt="Oyik AI" width={36} height={36} className="object-cover rounded-full" />
+    <aside className="w-[240px] min-w-[240px] bg-oyik-cream flex flex-col h-screen overflow-hidden p-4">
+      <div className="flex items-center gap-3 mb-8 px-2">
+        <div className="w-12 h-12 rounded-full shadow-nm-raised flex items-center justify-center bg-oyik-cream p-1">
+          <Image src="/oyik-logo.png" alt="Oyik AI" width={40} height={40} className="object-cover rounded-full" />
         </div>
-        <span className="text-xl font-bold text-oyik-navy">Oyik AI</span>
+        <span className="text-xl font-black text-oyik-navy tracking-tight">Oyik AI</span>
       </div>
 
-      <nav className="flex-1 py-4">
+      <nav className="flex-1 space-y-4">
         {navItems.map((item) => {
           const Icon = item.icon
           const isActive = activeView === item.id
@@ -34,27 +34,27 @@ export default function Sidebar({ activeView, onViewChange, userEmail, userName 
             <button
               key={item.id}
               onClick={() => onViewChange(item.id)}
-              className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${
+              className={`w-full flex items-center gap-3 px-5 py-4 text-left transition-all duration-300 rounded-2xl ${
                 isActive
-                  ? 'bg-oyik-lavender text-oyik-purple font-semibold border-l-2 border-oyik-purple rounded-lg mx-2'
-                  : 'text-oyik-text hover:bg-gray-50'
+                  ? 'shadow-nm-inset text-oyik-purple font-bold'
+                  : 'text-oyik-muted hover:shadow-nm-raised-sm hover:text-oyik-navy hover:bg-white/10'
               }`}
             >
-              <Icon size={20} />
-              <span>{item.label}</span>
+              <Icon size={22} className={isActive ? 'text-oyik-purple' : 'opacity-60'} />
+              <span className="text-sm tracking-wide">{item.label}</span>
             </button>
           )
         })}
       </nav>
 
-      <div className="p-4 border-t border-oyik-border">
-        <div className="flex items-center gap-3 p-2 rounded-lg bg-gray-50">
-          <div className="w-8 h-8 rounded-full bg-oyik-purple flex items-center justify-center text-white">
-            <User size={16} />
+      <div className="mt-auto pt-6">
+        <div className="flex items-center gap-4 p-4 rounded-3xl shadow-nm-raised bg-oyik-cream">
+          <div className="w-10 h-10 rounded-full shadow-nm-inset flex items-center justify-center text-oyik-purple bg-oyik-cream">
+            <User size={20} />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-oyik-navy truncate">{userName || 'User'}</p>
-            <p className="text-xs text-oyik-muted truncate">{userEmail}</p>
+            <p className="text-sm font-black text-oyik-navy truncate leading-none mb-1">{userName || 'User'}</p>
+            <p className="text-[10px] text-oyik-muted truncate font-bold uppercase tracking-wider">{userEmail}</p>
           </div>
         </div>
       </div>

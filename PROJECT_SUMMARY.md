@@ -2,13 +2,19 @@
 
 ## Project Overview
 A real estate dashboard built with Next.js + Supabase for managing chatbot conversations and Retell voice calls.
+**Current Design Theme:** Neumorphic Enterprise SaaS.
 
 ---
 
-## Current URL
+## Current URLs
+**Production Interface:**
 ```
-https://dashboard-2xmwcv7xc-neeshuvaninagara-6931s-projects.vercel.app
+https://dashboard.oyik.ai
 ```
+
+**Webhooks (Update external services to these):**
+- Chatbot: `https://dashboard.oyik.ai/api/chatbot/ingest`
+- Retell: `https://dashboard.oyik.ai/api/retell/webhook`
 
 ---
 
@@ -27,8 +33,10 @@ Oyik-DashBoard/
 │   └── reset-password/page.tsx
 ├── components/
 │   ├── LoginPage.tsx                 # Auth UI
-│   ├── ChatbotView.tsx               # Chat sessions list
-│   └── VoiceAgentView.tsx            # Voice calls list
+│   ├── ChatbotView.tsx               # Chat sessions list (Neumorphic)
+│   ├── VoiceAgentView.tsx            # Voice calls list (Neumorphic)
+│   ├── Sidebar.tsx                   # Main navigation
+│   └── TranscriptPanel.tsx           # Smart grouped transcripts
 ├── lib/
 │   ├── supabase.ts                   # Client (browser)
 │   ├── supabase-admin.ts             # Server (service role)
@@ -58,32 +66,16 @@ All tables filtered by `organization_id` - users can only see their organization
 
 ---
 
-## The Problem
+## Recent Updates & Fixes ✅
 
-### Current Issue:
-n8n sends data to the chatbot ingest API but returns error:
-```json
-{ "ok": false, "error": "Unable to ingest chatbot payload" }
-```
+### 1. Webhook Fixes
+- **Inbound Calls Fixed:** Inbound Retell calls now map correctly using hardcoded Agent IDs (`agent_xxxx`).
+- **Duplicate Log Bug:** Fixed an issue where the safety net log was incorrectly flagging valid calls as duplicates.
+- **Smart Numbers:** `to` and `from` numbers intelligently swap based on `direction` (Inbound vs Outbound).
 
-### Investigation:
-1. Deployment protection (Vercel auth) was blocking n8n - FIXED by disabling protection
-2. Removed secret validation from API
-3. Simplified the ingest function
-4. Still failing - 405 error or general error
-
-### What n8n sends:
-```json
-{
-  "organizationId": "095aa09e-bf16-4958-be45-42c05762ed63",
-  "sessionId": "s_1776072445818_4xm0wgwp",
-  "userMessage": "mmm",
-  "botResponse": {
-    "message": "And your email address?",
-    "properties": []
-  }
-}
-```
+### 2. UI Enhancements
+- **Neumorphism:** Applied soft, rounded, tactile shadows (`shadow-nm-raised`, `shadow-nm-inset`) across all panels, sidebars, and stat cards.
+- **Smart Grouping:** Consecutive transcript messages from the same speaker (AI or User) are grouped together into visual blocks without repeating icons or timestamps.
 
 ### Organization ID:
 ```
@@ -92,13 +84,11 @@ n8n sends data to the chatbot ingest API but returns error:
 
 ---
 
-## n8n Setup
+## Setup Instructions for Integrations
 
-### HTTP Request Node Configuration:
-- **URL:** `https://dashboard-2xmwcv7xc-neeshuvaninagara-6931s-projects.vercel.app/api/chatbot/ingest`
+### 1. n8n Setup (Chatbot)
+- **URL:** `https://dashboard.oyik.ai/api/chatbot/ingest`
 - **Method:** POST
-- **Headers:**
-  - Content-Type: application/json
 - **Body (JSON):**
 ```json
 {
@@ -109,52 +99,12 @@ n8n sends data to the chatbot ingest API but returns error:
 }
 ```
 
----
-
-## Retell Setup
-
-### Webhook URL:
-```
-https://dashboard-2xmwcv7xc-neeshuvaninagara-6931s-projects.vercel.app/api/retell/webhook
-```
-
-### Required Metadata:
-```json
-{
-  "organization_id": "095aa09e-bf16-4958-be45-42c05762ed63"
-}
-```
-
----
-
-## Next Steps (To Fix)
-
-1. **Check Vercel Function Logs:**
-   - Go to Vercel Dashboard → Deployments → Latest → Function Log
-   - See exact error message
-
-2. **Fix the API endpoint:**
-   - Currently simplified to just echo back
-   - Need to add proper Supabase insert logic back
-
-3. **Test with cURL:**
-```bash
-curl -X POST https://dashboard-2xmwcv7xc-neeshuvaninagara-6931s-projects.vercel.app/api/chatbot/ingest \
-  -H "Content-Type: application/json" \
-  -d '{"organizationId":"095aa09e-bf16-4958-be45-42c05762ed63","sessionId":"test-123","userMessage":"hello"}'
-```
-
----
-
-## Environment Variables (Vercel)
-
-| Key | Value |
-|-----|-------|
-| NEXT_PUBLIC_SUPABASE_URL | https://uscotjkqicqxvddclglj.supabase.co |
-| NEXT_PUBLIC_SUPABASE_ANON_KEY | eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9... |
-| SUPABASE_SERVICE_ROLE_KEY | eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9... |
-| CHATBOT_INGEST_SECRET | chatbot-secret-change-this |
-| RESEND_API_KEY | re_EiZXCBPf_LgubmLHCBtbKZehCgXqhqrXq |
+### 2. Retell Setup (Voice)
+- **Webhook URL:** `https://dashboard.oyik.ai/api/retell/webhook`
+- Set this URL on **Agents** AND specific **Phone Numbers** (for inbound support).
+- Current Allowed Agents:
+  - `agent_ae930c223647893de0e20301f1` (Outbound)
+  - `agent_260c6da594883877249f642474` (Inbound)
 
 ---
 
