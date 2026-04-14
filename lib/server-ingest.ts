@@ -176,6 +176,7 @@ async function hasWebhookEvent(
     .eq('source', source)
     .eq('event_type', eventType)
     .eq('external_event_id', externalEventId)
+    .eq('processing_status', 'processed')
     .maybeSingle<{ id: string }>()
 
   return Boolean(data)
@@ -615,13 +616,14 @@ export async function ingestRetellPayload(payload: unknown) {
 
   if (!retellCallId || !organizationId) {
     console.log(`[retell/webhook] REJECTED: Missing callId (${retellCallId}) or orgId (${organizationId})`)
-    // Still store the event for debugging if mapping failed
+    // Store as 'rejected' so future re-processing isn't blocked by duplicate check
     await supabase.from('webhook_events').insert({
       organization_id: organizationId || null,
       source,
       event_type: eventType,
       external_event_id: retellCallId || 'missing_id',
       payload,
+      processing_status: 'rejected',
     })
     return { duplicate: false, message: `Missing required IDs. Agent ID was: ${call.agent_id || call.agentId}` }
   }
