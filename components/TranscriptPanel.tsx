@@ -10,17 +10,12 @@ interface TranscriptPanelProps {
 export default function TranscriptPanel({ summary, transcript }: TranscriptPanelProps) {
   return (
     <div className="space-y-4">
-      <div className="bg-white rounded-2xl border border-oyik-border shadow-[0_2px_8px_rgba(124,58,237,0.05)] p-5">
+      <div className="bg-oyik-cream rounded-2xl shadow-nm-raised p-6">
         <h3 className="text-sm font-semibold text-oyik-navy mb-2">Summary</h3>
         <p className="text-sm text-oyik-text">{summary || 'No summary available'}</p>
       </div>
 
-      <div className="bg-white rounded-2xl border border-oyik-border shadow-[0_2px_8px_rgba(124,58,237,0.05)] p-5">
-        <h3 className="text-sm font-semibold text-oyik-navy mb-2">Summary</h3>
-        <p className="text-sm text-oyik-text">{summary || 'No summary available'}</p>
-      </div>
-
-      <div className="bg-white rounded-2xl border border-oyik-border shadow-[0_2px_8px_rgba(124,58,237,0.05)] p-5">
+      <div className="bg-oyik-cream rounded-2xl shadow-nm-raised p-6">
         <h3 className="text-sm font-semibold text-oyik-navy mb-4">Transcript</h3>
         {transcript.length === 0 ? (
           <p className="text-oyik-muted text-sm">No transcript available</p>

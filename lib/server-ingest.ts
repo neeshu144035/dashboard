@@ -145,6 +145,7 @@ function normalizeMessageRole(role: unknown, direction: unknown): 'agent' | 'use
     normalizedRole === 'agent' ||
     normalizedRole === 'bot' ||
     normalizedRole === 'ai' ||
+    normalizedRole === 'transfer_target' ||
     normalizedDirection === 'outgoing' ||
     normalizedDirection === 'assistant'
   ) {
