@@ -594,7 +594,10 @@ export async function ingestRetellPayload(payload: unknown) {
     if (
       agentId === 'agent_ae930c223647893de0e20301f1' || // Outbound Agent
       agentId === 'agent_260c6da594883877249f642474' || // Inbound Agent
-      agentId === 'agent_7ca0130c2622587d9438659e42'    // Maintenance Agent
+      agentId === 'agent_7ca0130c2622587d9438659e42' || // Maintenance Agent
+      agentId === 'agent_c99e0e275a93dc201f54692734' || // Subagent
+      agentId === 'agent_da9c114506c50c0cb97ec34ded' || // Subagent
+      agentId === 'agent_1f4dcccc1bda96547824daa1e4'    // Subagent
     ) {
       organizationId = '095aa09e-bf16-4958-be45-42c05762ed63'
       console.log(`[retell/webhook] Applied hardcoded mapping for BM Estate (095aa...63)`)
