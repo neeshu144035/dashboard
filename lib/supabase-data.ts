@@ -291,7 +291,7 @@ export async function getCalls(organizationId: string, limit = 50): Promise<Call
           .select('id, call_id, role, speaker, content, created_at')
           .eq('organization_id', organizationId)
           .in('call_id', callIds)
-          .order('created_at', { ascending: true })
+          .order('sequence_number', { ascending: true })
           .returns<VoiceTranscriptRow[]>()
       : Promise.resolve({ data: [] as VoiceTranscriptRow[], error: null }),
   ])
